@@ -2,9 +2,6 @@ import * as H from "@funkia/hareactive";
 import {runComponent, elements as E, list, component} from "@funkia/turbine";
 import {withEffectsP, callP} from "@funkia/io";
 
-const enter = 13;
-const esc = 27;
-
 const getShortcutsMock = callP(
     () => new Promise(resolve => {
         setTimeout(() => {
@@ -28,6 +25,22 @@ const createShortcutMock = withEffectsP(
     })
 );
 
+const editShortcutMock = withEffectsP(
+    shortcut => new Promise(resolve => {
+        setTimeout(() => {
+            resolve(shortcut);
+        }, 2000);
+    })
+);
+
+const deleteShortcutMock = withEffectsP(
+    id => new Promise(resolve => {
+        setTimeout(() => {
+            resolve();
+        }, 2000);
+    })
+);
+
 const getShortcuts = callP(
     () => fetch('http://localhost:8080/shortcuts').then(response => response.json())
 );
@@ -46,9 +59,9 @@ const deleteShortcut = withEffectsP(
 
 const counterList = component((on, start) => {
     const deletion$ = H.shiftCurrent(
-        on.shortcutOutputs.map(list => list.length ? H.combine(...list.map(o => o.destroyItemId)) : H.empty)
+        on.shortcutOutputs.map(list => list.length ? H.combine(...list.map(o => o.destroyItemId$)) : H.empty)
     );
-    start(H.performStream(deletion$.map(deleteShortcut)));
+    start(H.performStream(deletion$.map(deleteShortcutMock)));
     const deletedIds = start(H.accum((x, xs) => Object.assign({[x]: true}, xs), Object.create(null), deletion$));
     const existingShortcuts = H.stepTo([], start(H.performIO(getShortcutsMock)));
     const resetShortcutInput$ = start(H.delay(0, on.addShortcut)).mapTo('');
@@ -60,11 +73,11 @@ const counterList = component((on, start) => {
     return [
         E.div({class: 'container'}, [
             E.div({class: ['columns', 'is-centered']}, [
-                E.div({class: ['column', 'is-5']}, [
+                E.div({class: ['column is-5']}, [
                     E.h1({class: 'title'}, 'Shortcuts'),
-                    E.div({class: 'columns'}, [
+                    E.div({class: 'columns box mb-6'}, [
                         E.div({class: 'column is-one-quarter'}, [
-                            E.button({class: 'button'}, 'Add shortcut').use({
+                            E.button({class: 'button'}, 'Create').use({
                                 addShortcut: 'click'
                             }),
                         ]),
@@ -75,9 +88,9 @@ const counterList = component((on, start) => {
                             E.input({class: 'input', placeholder: 'Url', value: resetShortcutInput$}).use({shortcutUrlInput: 'value'}),
                         ]),
                     ]),
-                    E.input({class: 'input', placeholder: 'Search shortcuts...'}).use({searchTerm: 'value'}),
+                    E.input({class: 'input is-static', placeholder: 'Search shortcuts...'}).use({searchTerm: 'value'}),
                     E.br,
-                    list(x => shortcut(x).use({destroyItemId: 'destroyItemId'}), filteredShortcuts, o => o.id).use(o => ({shortcutOutputs: o})),
+                    list(x => shortcut(x).use({destroyItemId$: 'destroyItemId$'}), filteredShortcuts, o => o.id).use(o => ({shortcutOutputs: o})),
                 ]),
             ]),
         ]),
@@ -86,37 +99,22 @@ const counterList = component((on, start) => {
 
 const shortcut = props =>
     component((on, start) => {
-        const editing = start(H.toggle(false, on.startEditing, on.stopEditing));
-        const nameChange = H.snapshot(
-            on.newName,
-            on.stopEditing.filter(b => b)
-        );
-        const url = start(H.stepper(props.url, nameChange));
-        const destroyItemId = on.deleteClicked.mapTo(props.id);
-        return E.div({class: ['shortcut', 'box', 'mt-3', {editing}]}, [
+        const destroyItemId$ = on.deleteClicked.mapTo(props.id);
+        const debouncedEdit$ = start(H.debounce(100, on.urlChange));
+        const updatedShortcut$ = H.snapshot(on.urlInput, debouncedEdit$).map(url => Object.assign({}, props, {url}));
+        const successfulUpdates$ = start(H.flatFuturesOrdered(start(H.performStream(updatedShortcut$.map(editShortcutMock)))));
+        return E.div({class: ['shortcut', 'box', 'mt-3']}, [
             E.div([
                 E.div({class: 'is-flex mb-2'}, [
                     E.div({class: 'is-size-6'}, props.key),
                     E.div({class: 'is-flex-grow-1'}),
                     E.button({class: 'button is-small is-danger is-outlined is-pulled-right'}, 'X').use({deleteClicked: 'click'}),
                 ]),
-                E.div({class: 'is-size-5'}, [
-                    E.div({class: 'is-fullwidth url'}, url).use({startEditing: 'click'}),
-                    E.input({
-                        class: ['input', 'url-editor'],
-                        value: H.snapshot(url, on.startEditing),
-                        actions: {focus: start(H.delay(0, on.startEditing))},
-                    }).use(o => ({
-                        newName: o.value,
-                        stopEditing: H.combine(
-                            o.keyup.filter(ev => ev.keyCode === enter).mapTo(true),
-                            H.keepWhen(o.blur, editing).mapTo(true),
-                            o.keyup.filter(ev => ev.keyCode === esc).mapTo(false)
-                        ),
-                    })),
+                E.div({class: ['control is-size-5', {'is-loading': start(H.toggle(false, on.urlChange, successfulUpdates$))}]}, [
+                    E.input({class: 'input is-static', value: props.url}).use({urlInput: 'value', urlChange: 'input'}),
                 ]),
             ]),
-        ]).output({destroyItemId, id: props.id});
+        ]).output({destroyItemId$, id: props.id});
     });
 
 runComponent("#mount", counterList);
