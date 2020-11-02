@@ -83,7 +83,7 @@ const counterList = component((on, start) => {
                 E.div({class: 'column is-flex-grow-2'}, [
                     E.input({class: 'input', placeholder: 'Url', value: resetShortcutInput$}).use({shortcutUrlInput: 'value'}),
                 ]),
-                E.button({class: ['button', {'is-loading': creatingShortcut}]}, 'Create').use({
+                E.button({class: ['button', {'is-loading': creatingShortcut}]}, 'Create new shortcut').use({
                     addShortcut: 'click'
                 }),
             ]),
