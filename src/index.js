@@ -68,32 +68,28 @@ const counterList = component((on, start) => {
     const shortcutInput = H.lift((key, url) => ({key, url}), on.shortcutKeyInput, on.shortcutUrlInput);
     const nextShortcut$ = H.snapshot(shortcutInput, on.addShortcut);
     const createdShortcut$ = start(H.flatFuturesOrdered(start(H.performStream(nextShortcut$.map(createShortcutMock)))));
+    const creatingShortcut = start(H.toggle(false, on.addShortcut, createdShortcut$));
     const shortcuts = start(H.accum((x, xs) => [...xs, x], [], createdShortcut$));
     const filteredShortcuts = H.lift((xs, ys, deleted, searchTerm) => [...xs, ...ys].filter(x => !deleted[x.id] && x.key.includes(searchTerm)), existingShortcuts, shortcuts, deletedIds, on.searchTerm);
     return [
-        E.div({class: 'container'}, [
-            E.div({class: ['columns', 'is-centered']}, [
-                E.div({class: ['column is-5 is-flex is-flex-direction-column']}, [
-                    E.h1({class: 'title'}, 'Shortcuts'),
-                    E.div({class: 'is-flex-grow-1'}, [
-                        E.div({class: 'columns is-vcentered is-flex box mb-6'}, [
-                            E.button({class: 'button'}, 'Create').use({
-                                addShortcut: 'click'
-                            }),
-                            E.div({class: 'column is-flex-grow-1'}, [
-                                E.input({class: 'input', placeholder: 'Key', value: resetShortcutInput$}).use({shortcutKeyInput: 'value', shortcutKeyInputChange: 'change'}),
-                            ]),
-                            E.div({class: 'column is-flex-grow-2'}, [
-                                E.input({class: 'input', placeholder: 'Url', value: resetShortcutInput$}).use({shortcutUrlInput: 'value'}),
-                            ]),
-                        ]),
-                        E.input({class: 'input is-static', placeholder: 'Search shortcuts...'}).use({searchTerm: 'value'}),
-                    ]),
-                    E.div({class: 'is-flex-grow-3'}, [
-                        list(x => shortcut(x).use({successfulDeletion$: 'successfulDeletion$'}), filteredShortcuts, o => o.id).use(o => ({shortcutOutputs: o})),
-                    ]),
+        E.div({class: 'is-flex is-flex-direction-column left-container'}, [
+            E.input({class: 'input is-large side-content', placeholder: 'Search shortcuts...'}).use({searchTerm: 'value'}),
+        ]),
+        E.div({class: 'right-container'}, [
+            E.div({class: 'is-flex is-flex-direction-column box mb-6 side-content'}, [
+                E.div({class: 'column is-flex-grow-1'}, [
+                    E.input({class: 'input', placeholder: 'Key', value: resetShortcutInput$}).use({shortcutKeyInput: 'value', shortcutKeyInputChange: 'change'}),
                 ]),
+                E.div({class: 'column is-flex-grow-2'}, [
+                    E.input({class: 'input', placeholder: 'Url', value: resetShortcutInput$}).use({shortcutUrlInput: 'value'}),
+                ]),
+                E.button({class: ['button', {'is-loading': creatingShortcut}]}, 'Create').use({
+                    addShortcut: 'click'
+                }),
             ]),
+        ]),
+        E.div({class: 'middle-content is-centered'}, [
+            list(x => shortcut(x).use({successfulDeletion$: 'successfulDeletion$'}), filteredShortcuts, o => o.id).use(o => ({shortcutOutputs: o})),
         ]),
     ];
 });

@@ -5,10 +5,38 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.1/css/bulma.min.css">
+	<style type="text/css">
+        .left-container {
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            width: 30%;
+        }
+        .right-container {
+            position: fixed;
+            right: 0;
+            top: 0;
+            height: 100vh;
+            width: 30%;
+        }
+        .side-content {
+            margin: 0;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60%;
+        }
+        .middle-content {
+            margin-left: 35%;
+            margin-right: 35%;
+        }
+	</style>
 </head>
 
 <body>
-	<section id="mount" class="section"></section>
+	<div id="mount"></div>
 
 	<script src="src/index.js"></script>
 </body>
