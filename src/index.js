@@ -83,7 +83,7 @@ const counterList = component((on, start) => {
                 E.div({class: 'column is-flex-grow-2'}, [
                     E.input({class: 'input', placeholder: 'Url', value: resetShortcutInput$}).use({shortcutUrlInput: 'value'}),
                 ]),
-                E.button({class: ['button', {'is-loading': creatingShortcut}]}, 'Create new shortcut').use({
+                E.button({class: ['button m-3', {'is-loading': creatingShortcut}]}, 'Create new shortcut').use({
                     addShortcut: 'click'
                 }),
             ]),
@@ -109,7 +109,7 @@ const shortcut = props =>
                 E.div({class: 'is-flex mb-2'}, [
                     E.div({class: 'is-size-6'}, props.key),
                     E.div({class: 'is-flex-grow-1'}),
-                    E.button({class: ['button is-small is-danger is-outlined is-pulled-right', {'is-loading': deleting}]}, 'X').use({deleteClicked: 'click'}),
+                    E.button({class: ['button is-small is-outlined', {'is-loading': deleting}]}, 'X').use({deleteClicked: 'click'}),
                 ]),
                 E.div({class: ['control is-size-5', {'is-loading': updating}]}, [
                     E.input({class: 'input is-static', value: props.url}).use({urlInput: 'value', urlChange: 'input'}),
